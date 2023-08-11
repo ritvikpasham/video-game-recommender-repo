@@ -22,5 +22,5 @@ while not game_3 in vg_data['name'].unique():
 genre_frequency = {}
 publisher_frequency = {}
 
-#print(vg_data.loc[vg_data['name'] == game_1])
+#print(vg_data.loc[vg_data['name'] == game_1]) hello
 
