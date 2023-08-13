@@ -18,7 +18,11 @@ def find_game(game_name):
 
     if game.shape[0] > 1:
         #we only want one game, so we find which game the user meant
-        platform = input('Found duplicates of game specified. What platform was your game released on?\n')
+        platform = input('Found duplicates of game specified. What platform was your game released on?\n').lower()
+        #make sure user inputed a valid platform name
+        while not platform in vg_data['platform'].unique():
+            platform = input('Could not find platform. Try entering again:\n').lower()
+
         game = game.loc[game['platform'] == platform]
     
     return game
