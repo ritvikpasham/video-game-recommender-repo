@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+
 from IPython.display import display
 
 vg_data = pd.read_csv("games-data.csv")
@@ -23,39 +25,77 @@ def find_game(game_name):
 
         game = game.loc[game['platform'] == platform]
     
-    return game
+    return game.squeeze()
 
+# function that checks whether a series is in a container of series
+def series_is_in(series, container):
+    for x in container:
+        if series.equals(x):
+            return True
+    return False
 
 # finds the user's favorite game
 game1 = find_game(input('What is your favorite video game released on or before November 2020?\n').lower())
-
 # does the same for the second favorite game and the third
 game2 = find_game(input('What is your second favorite video game released on or before November 2020?\n').lower())
 game3 = find_game(input('What is your third favorite video game released on or before November 2020?\n').lower())
 
 user_games = [game1, game2, game3]
 
-# dictionaries counting the frequency of genres and publishers from user data
+# dictionaries counting the frequency of genres and developers from user data
 genre_frequency = {}
-publisher_frequency = {}
+developer_frequency = {}
 
 for game in user_games:
-    # [0,6] is the location of the genre of the game
     # genres is a list of all the genres this game has
-    genres = game.iloc[0,6].split(',')
-
+    genres = game['genre'].split(',')
     for genre in genres:
         if genre in genre_frequency:
             genre_frequency[genre] += 1
         else:
             genre_frequency[genre] = 1
     
-    # now counts publishers
-    # [0,1] is the location of the publisher of the game
-    publisher = game.iloc[0,1]
-    if publisher in publisher_frequency:
-        publisher_frequency[publisher] += 1
+    # now counts developer
+    dev = game['developer']
+    if dev in developer_frequency:
+        developer_frequency[dev] += 1
     else:
-        publisher_frequency[publisher] = 1
-print(genre_frequency)
-print(publisher_frequency)
+        developer_frequency[dev] = 1
+
+# new column for the data to see how well they rank with the user's preferences
+score = np.zeros(vg_data.shape[0])
+
+print('...')
+for index, row in vg_data.iterrows():
+    # Don't want to suggest games the user inputted
+    if series_is_in(row, user_games):
+        score[index] = float('-inf')
+    else:
+        score[index] = 0
+        # list of the current genres
+        genres = row['genre'].split(',')
+        for genre in genres:
+            if genre in genre_frequency:
+                # 0.5 is an arbitrary value chosen as the weight of each genre
+                score[index] += genre_frequency[genre] * 0.5
+        
+        dev = row['developer']
+        # checks developer
+        if dev in developer_frequency:
+            # 0.33 is an arbitrary value chosen as the weight of each developer
+            score[index] += developer_frequency[dev] * 0.33
+
+# adds score as a column to video game data
+vg_data['generated_score'] = score
+
+# sorts the suggestions based on the scores and its user rating
+vg_data = vg_data.sort_values(by=['generated_score', 'user score'], ascending=False)
+
+# gets number of suggestions from user
+print('Calculations complete')
+num_suggestion = int(input('How many suggestions would you like?\n'))
+while num_suggestion > vg_data.shape[0] and num_suggestion <= 0:
+    num_suggestion = input('Input too high or too low. Please try again\n')
+    
+vg_data = vg_data.drop(['developer', 'players', 'critics', 'users', 'r-date', 'platform', 'genre', 'score'], axis=1)
+display(vg_data[:num_suggestion])
